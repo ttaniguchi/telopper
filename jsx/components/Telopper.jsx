@@ -11,12 +11,12 @@ import { STEPS } from './index';
 import { download, timeFormat } from './../libs';
 
 const CANVAS_WIDTH = 640;
-const CANVAS_HEIGHT = 360;
 
 export default class Telopper extends Component {
   constructor(props, context) {
     super(props, context);
     this.state = {
+      aspectRatio: 0,
       currentTime: 0,
       duration: 0,
       playbackRate: 1,
@@ -27,24 +27,33 @@ export default class Telopper extends Component {
   }
   componentDidMount() {
     this.video.load();
+
+    this.video.addEventListener('durationchange', () => (
+      this.setState({
+        aspectRatio: this.video.videoHeight / this.video.videoWidth,
+        duration: this.video.duration || 0,
+      })
+    ));
     this.video.addEventListener('timeupdate', () => (
       this.setState({
         currentTime: this.video.currentTime || 0,
-        duration: this.video.duration || 0,
       })
     ));
     const ctx = this.canvas.getContext('2d');
 
     this.interval = setInterval(() => {
-      ctx.drawImage(this.video, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      const { aspectRatio } = this.state;
+
+      ctx.drawImage(this.video, 0, 0, CANVAS_WIDTH, CANVAS_WIDTH * aspectRatio);
       const telop = this.getTelop();
       const posX = (CANVAS_WIDTH / 2) - (ctx.measureText(telop).width / 2);
       ctx.font = 'bold 24px "Noto Sans JP"';
       ctx.fillStyle = 'white';
-      ctx.fillText(telop, posX, CANVAS_HEIGHT - 32);
+      ctx.fillText(telop, posX, (CANVAS_WIDTH * aspectRatio) - 32);
     }, 1000 / 30);
   }
   componentWillUnmount() {
+    this.video.removeEventListener('durationchange', this.setState, true);
     this.video.removeEventListener('timeupdate', this.setState, true);
     clearInterval(this.interval);
   }
@@ -110,21 +119,19 @@ export default class Telopper extends Component {
   }
   render() {
     const { source, step } = this.props;
-    const { currentTime, duration, playbackRate, text, telops, times } = this.state;
+    const { aspectRatio, currentTime, duration, playbackRate, text, telops, times } = this.state;
 
     return (
       <Card style={{ width: 690 }}>
         <CardMedia>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <video
-              ref={c => (this.video = c)}
-              src={source}
-              style={{ display: 'none' }}
-            />
+            <div style={{ display: 'none' }}>
+              <video ref={c => (this.video = c)} src={source} />
+            </div>
             <canvas
               ref={c => (this.canvas = c)}
               width={CANVAS_WIDTH}
-              height={CANVAS_HEIGHT}
+              height={CANVAS_WIDTH * aspectRatio}
             />
             <center>
               <div>
