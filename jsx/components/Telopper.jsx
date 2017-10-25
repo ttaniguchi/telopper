@@ -8,22 +8,11 @@ import IconPause from 'material-ui/svg-icons/av/pause';
 import IconPlay from 'material-ui/svg-icons/av/play-arrow';
 
 import { STEPS } from './index';
+import { download, timeFormat } from './../libs';
 
 const CANVAS_WIDTH = 640;
 const CANVAS_HEIGHT = 360;
-const format = time => {
-  let t = time;
-  const h = Math.floor(t / 3600);
-  t -= h * 3600;
-  const i = Math.floor(t / 60);
-  t -= i * 60;
-  const s = Math.floor(t);
-  t -= s;
-  const ss = Math.floor(t * 1000);
-  return `${
-    `0${h}`.slice(-2)}:${`0${i}`.slice(-2)}:${`0${s}`.slice(-2)}.${`00${ss}`.slice(-3)
-  }`;
-};
+
 export default class Telopper extends Component {
   constructor(props, context) {
     super(props, context);
@@ -72,11 +61,10 @@ export default class Telopper extends Component {
     const { telops, times } = this.state;
 
     const text = times.map((row, i) => (
-      `${i + 1}\n${format(row.start)} --> ${format(row.end)}\n${telops[i]}\n`
+      `${i + 1}\n${timeFormat(row.start)} --> ${timeFormat(row.end)}\n${telops[i]}\n`
     ));
     return `WEBVTT\n\n${text.join('\n')}`;
   }
-
   punch() {
     const { telops, times } = this.state;
 
@@ -115,114 +103,116 @@ export default class Telopper extends Component {
     this.video.pause();
     this.video.currentTime = 0;
     handleStep(step);
+
+    if (step === STEPS.BUILD) {
+      download(this.getText(), 'telop.vtt');
+    }
   }
   render() {
     const { source, step } = this.props;
     const { currentTime, duration, playbackRate, text, telops, times } = this.state;
 
     return (
-      <center>
-        <Card style={{ width: 690 }}>
-          <CardMedia>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <video
-                ref={c => (this.video = c)}
-                src={source}
-                style={{ display: 'none' }}
-              />
-              <canvas
-                ref={c => (this.canvas = c)}
-                width={CANVAS_WIDTH}
-                height={CANVAS_HEIGHT}
-              />
-              <center>
-                <div>
-                  {playbackRate === 1 ? '標準' : `x${playbackRate}倍`}
-                </div>
-                <Slider
-                  axis="y"
-                  min={0.5}
-                  max={1.5}
-                  step={0.1}
-                  style={{ height: 200, margin: 16 }}
-                  value={playbackRate}
-                  onChange={(e, val) => {
-                    this.video.playbackRate = val;
-                    this.setState({ playbackRate: val });
-                  }}
-                />
-              </center>
-            </div>
-          </CardMedia>
-          <CardActions>
-            <div style={{ display: 'flex' }}>
-              <IconButton style={{ height: 64 }} onClick={() => this.togglePlay()}>
-                {this.video && this.video.paused === false ? <IconPlay /> : <IconPause />}
-              </IconButton>
-              <div style={{ padding: '24px 0', width: 160 }}>
-                {(format(currentTime).split('.'))[0]} / {(format(duration).split('.'))[0]}
+      <Card style={{ width: 690 }}>
+        <CardMedia>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <video
+              ref={c => (this.video = c)}
+              src={source}
+              style={{ display: 'none' }}
+            />
+            <canvas
+              ref={c => (this.canvas = c)}
+              width={CANVAS_WIDTH}
+              height={CANVAS_HEIGHT}
+            />
+            <center>
+              <div>
+                {playbackRate === 1 ? '標準' : `x${playbackRate}倍`}
               </div>
               <Slider
-                min={0}
-                max={duration || 1}
+                axis="y"
+                min={0.5}
+                max={1.5}
                 step={0.1}
-                style={{ width: CANVAS_WIDTH - 160 }}
-                value={currentTime}
-                onChange={(e, val) => (this.video.currentTime = val)}
-                disabled={currentTime === 0}
+                style={{ height: 200, margin: 16 }}
+                value={playbackRate}
+                onChange={(e, val) => {
+                  this.video.playbackRate = val;
+                  this.setState({ playbackRate: val });
+                }}
+              />
+            </center>
+          </div>
+        </CardMedia>
+        <CardActions>
+          <div style={{ display: 'flex' }}>
+            <IconButton style={{ height: 64 }} onClick={() => this.togglePlay()}>
+              {this.video && this.video.paused === false ? <IconPlay /> : <IconPause />}
+            </IconButton>
+            <div style={{ padding: '24px 0', width: 160 }}>
+              {(timeFormat(currentTime).split('.'))[0]} / {(timeFormat(duration).split('.'))[0]}
+            </div>
+            <Slider
+              min={0}
+              max={duration || 1}
+              step={0.1}
+              style={{ width: CANVAS_WIDTH - 160 }}
+              value={currentTime}
+              onChange={(e, val) => (this.video.currentTime = val)}
+              disabled={currentTime === 0}
+            />
+          </div>
+        </CardActions>
+        {step === STEPS.CREATE_TEXT && (
+          <CardText>
+            <div>
+              <textarea
+                rows={20}
+                cols={80}
+                value={text}
+                onChange={e => this.setState({
+                  text: e.target.value,
+                  telops: e.target.value.split('\n').filter(str => (str !== '')),
+                  times: [],
+                })}
               />
             </div>
+            <div>
+              <RaisedButton
+                label="文字起こし完了"
+                onMouseDown={() => this.handleStep(STEPS.PUNCHING)}
+                disabled={telops.length === 0}
+                primary
+              />
+            </div>
+          </CardText>
+        )}
+        {step === STEPS.PUNCHING && (
+          <CardActions>
+            {telops.length === times.length ? (
+              <RaisedButton
+                label="VTTファイル作成"
+                onMouseDown={() => this.handleStep(STEPS.BUILD)}
+                primary
+              />
+            ) : (
+              <RaisedButton
+                label={`パンチ(${times.length})`}
+                onMouseDown={e => this.punch(e)}
+                primary
+              />
+            )}
           </CardActions>
-          {step === STEPS.CREATE_TEXT && (
-            <CardText>
-              <div>
-                <textarea
-                  rows={20}
-                  cols={80}
-                  value={text}
-                  onChange={e => this.setState({
-                    text: e.target.value,
-                    telops: e.target.value.split('\n').filter(str => (str !== '')),
-                    times: [],
-                  })}
-                />
-              </div>
-              <div>
-                <RaisedButton
-                  label="文字起こし完了"
-                  onMouseDown={() => this.handleStep(STEPS.PUNCHING)}
-                  disabled={telops.length === 0}
-                  primary
-                />
-              </div>
-            </CardText>
-          )}
-          {step === STEPS.PUNCHING && (
-            <CardActions>
-              {telops.length === times.length ? (
-                <RaisedButton
-                  label="VTTファイル作成"
-                  onMouseDown={() => this.handleStep(STEPS.BUILD)}
-                  primary
-                />
-              ) : (
-                <RaisedButton
-                  label={`パンチ(${times.length})`}
-                  onMouseDown={e => this.punch(e)}
-                  primary
-                />
-              )}
-            </CardActions>
-          )}
-          {step === STEPS.BUILD && (
-            <CardText>
-              <pre style={{ textAlign: 'left' }}>
-                {this.getText()}
-              </pre>
-            </CardText>
-          )}
-        </Card>
-      </center>
+        )}
+        {step === STEPS.BUILD && (
+          <CardText>
+            <pre style={{ textAlign: 'left' }}>
+              {this.getText()}
+            </pre>
+          </CardText>
+        )}
+      </Card>
     );
   }
 }

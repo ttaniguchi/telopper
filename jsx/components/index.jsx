@@ -30,7 +30,7 @@ export default class App extends Component {
     const { source, step } = this.state;
 
     return (
-      <div>
+      <center>
         <Stepper activeStep={step}>
           {STEP_NAMES.map((name, i) => (
             <Step key={name}>
@@ -39,18 +39,16 @@ export default class App extends Component {
           ))}
         </Stepper>
         {step === STEPS.FILE_SELECT ? (
-          <center>
-            <Dropzone
-              accept="video/*;capture=camcorder"
-              onDrop={(a, file) => this.setState({
-                source: createObjectURL(file[0]),
-                step: STEPS.CREATE_TEXT,
-              })}
-            >
-              <p>動画ファイルを</p>
-              <p>ドラッグしてください</p>
-            </Dropzone>
-          </center>
+          <Dropzone
+            accept="video/*;capture=camcorder"
+            onDrop={(a, file) => this.setState({
+              source: createObjectURL(file[0]),
+              step: STEPS.CREATE_TEXT,
+            })}
+          >
+            <p>動画ファイルを</p>
+            <p>ドラッグしてください</p>
+          </Dropzone>
         ) : (
           <Telopper
             source={source}
@@ -58,7 +56,7 @@ export default class App extends Component {
             handleStep={s => this.setState({ step: s })}
           />
         )}
-      </div>
+      </center>
     );
   }
 }
