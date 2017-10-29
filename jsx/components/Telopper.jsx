@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { Card, CardActions, CardMedia, CardText } from 'material-ui/Card';
+import { List, ListItem } from 'material-ui/List';
 import IconButton from 'material-ui/IconButton';
 import RaisedButton from 'material-ui/RaisedButton';
 import Slider from 'material-ui/Slider';
@@ -96,6 +97,8 @@ export default class Telopper extends Component {
         start: this.video.currentTime,
         end: this.video.currentTime + 4,
       });
+      const list = document.getElementById('list');
+      list.scrollTop = times.length * 48;
       this.setState({ times });
     }
   }
@@ -211,6 +214,15 @@ export default class Telopper extends Component {
               />
             )}
           </CardActions>
+        )}
+        {step === STEPS.PUNCHING && (
+          <CardText>
+            <List id="list" style={{ height: 48, overflowY: 'scroll', textAlign: 'left' }}>
+              {telops.map((telop, i) => (
+                <ListItem key={i} primaryText={telop} />
+              ))}
+            </List>
+          </CardText>
         )}
         {step === STEPS.BUILD && (
           <CardText>
