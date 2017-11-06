@@ -19,7 +19,7 @@ export default class Telopper extends Component {
     this.state = {
       aspectRatio: 0,
       currentTime: 0,
-      duration: 0,
+      duration: Infinity,
       playbackRate: 1,
       text: '',
       telops: [],
@@ -32,7 +32,7 @@ export default class Telopper extends Component {
     this.video.addEventListener('durationchange', () => (
       this.setState({
         aspectRatio: this.video.videoHeight / this.video.videoWidth,
-        duration: this.video.duration || 0,
+        duration: this.video.duration || Infinity,
       })
     ));
     this.video.addEventListener('timeupdate', () => (
@@ -47,7 +47,7 @@ export default class Telopper extends Component {
 
       ctx.drawImage(this.video, 0, 0, CANVAS_WIDTH, CANVAS_WIDTH * aspectRatio);
       const telop = this.getTelop();
-      const posX = (CANVAS_WIDTH / 2) - (ctx.measureText(telop).width / 2);
+      const posX = (CANVAS_WIDTH - ctx.measureText(telop).width) / 2;
       ctx.font = 'bold 24px "Noto Sans JP"';
       ctx.fillStyle = 'white';
       ctx.fillText(telop, posX, (CANVAS_WIDTH * aspectRatio) - 32);
@@ -165,12 +165,11 @@ export default class Telopper extends Component {
             </div>
             <Slider
               min={0}
-              max={duration || 1}
+              max={duration}
               step={0.1}
               style={{ width: CANVAS_WIDTH - 160 }}
               value={currentTime}
               onChange={(e, val) => (this.video.currentTime = val)}
-              disabled={currentTime === 0}
             />
           </div>
         </CardActions>
